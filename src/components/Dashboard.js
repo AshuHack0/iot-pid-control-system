@@ -9,6 +9,7 @@ function Dashboard() {
   const [pValue, setPValue] = useState(2);
   const [iValue, setIValue] = useState(0.5);
   const [dValue, setDValue] = useState(0.1);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   useEffect(() => {
     const isAuthenticated = localStorage.getItem('isAuthenticated');
@@ -38,33 +39,36 @@ function Dashboard() {
     <div className="min-h-screen bg-gray-100">
       {/* Enhanced Header */}
       <div className="bg-white shadow">
-        <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
+        <div className="max-w-7xl mx-auto py-2 px-2 sm:px-4 lg:px-8">
+          <div className="flex flex-col space-y-4 md:space-y-0">
+            {/* Logo and Title Section */}
+            <div className="flex flex-col items-center text-center sm:flex-row sm:items-center sm:text-left">
               <img
-                className="h-16 w-auto mr-4"
+                className="h-10 w-auto sm:h-16 sm:mr-4"
                 src="https://upload.wikimedia.org/wikipedia/en/1/1d/National_Institute_of_Technology%2C_Nagaland_Logo.png"
                 alt="NIT Logo"
               />
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900">
+              <div className="mt-2 sm:mt-0">
+                <h1 className="text-lg sm:text-2xl md:text-3xl font-bold text-gray-900 break-words">
                   IOT Enabled PID Level Control System
                 </h1>
-                <h2 className="text-lg text-gray-600 mt-1">
+                <h2 className="text-sm sm:text-base text-gray-600 mt-1">
                   LabVIEW Integration with Arduino and Remote Web Interface
                 </h2>
               </div>
             </div>
-            <div className="flex items-center space-x-4">
-              <div className="text-right">
-                <p className="text-sm text-gray-500">System Status</p>
-                <p className="text-sm font-medium text-green-600">● Online</p>
+
+            {/* Status and Controls Section */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 items-center justify-items-center sm:justify-items-end">
+              <div className="text-center sm:text-right">
+                <p className="text-xs sm:text-sm text-gray-500">System Status</p>
+                <p className="text-xs sm:text-sm font-medium text-green-600">● Online</p>
               </div>
-              <div className="text-right">
-                <p className="text-sm text-gray-500">Last Updated</p>
-                <p className="text-sm font-medium">{new Date().toLocaleTimeString()}</p>
+              <div className="text-center sm:text-right">
+                <p className="text-xs sm:text-sm text-gray-500">Last Updated</p>
+                <p className="text-xs sm:text-sm font-medium">{new Date().toLocaleTimeString()}</p>
               </div>
-              <button className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
+              <button className="col-span-2 sm:col-span-1 w-full sm:w-auto px-3 py-1.5 text-xs sm:text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
                 Generate Report
               </button>
             </div>
@@ -74,15 +78,51 @@ function Dashboard() {
 
       {/* Navigation Bar */}
       <div className="bg-gray-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-12">
+        <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8">
+          {/* Mobile menu button */}
+          <div className="flex items-center justify-between py-2 sm:hidden">
+            <button
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="text-gray-300 hover:text-white"
+            >
+              <span className="sr-only">Open menu</span>
+              {/* Hamburger icon */}
+              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d={isMenuOpen ? "M6 18L18 6M6 6l12 12" : "M4 6h16M4 12h16M4 18h16"}
+                />
+              </svg>
+            </button>
+            <div className="flex items-center">
+              <span className="text-gray-300 text-sm">Welcome, {localStorage.getItem('user') || 'Admin'}</span>
+              <button onClick={handleLogout} className="ml-4 text-gray-300 hover:text-white text-sm font-medium">
+                Logout
+              </button>
+            </div>
+          </div>
+
+          {/* Mobile menu */}
+          <div className={`${isMenuOpen ? 'block' : 'hidden'} sm:hidden py-2`}>
+            <div className="flex flex-col space-y-2">
+              <a href="#overview" className="text-white block px-3 py-2 rounded-md text-base font-medium">Overview</a>
+              <a href="#controls" className="text-gray-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium">Controls</a>
+              <a href="#analytics" className="text-gray-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium">Analytics</a>
+              <a href="#settings" className="text-gray-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium">Settings</a>
+            </div>
+          </div>
+
+          {/* Desktop menu */}
+          <div className="hidden sm:flex sm:items-center sm:justify-between sm:h-12">
             <div className="flex space-x-4">
               <a href="#overview" className="text-white px-3 py-2 rounded-md text-sm font-medium">Overview</a>
               <a href="#controls" className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Controls</a>
               <a href="#analytics" className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Analytics</a>
               <a href="#settings" className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Settings</a>
             </div>
-            <div className="flex items-center">
+            <div className="hidden sm:flex items-center">
               <span className="text-gray-300 text-sm">Welcome, {localStorage.getItem('user') || 'Admin'}</span>
               <button onClick={handleLogout} className="ml-4 text-gray-300 hover:text-white text-sm font-medium">
                 Logout
@@ -98,19 +138,23 @@ function Dashboard() {
           {/* Real-time Graph */}
           <div className="bg-white rounded-lg shadow p-6">
             <h2 className="text-lg font-semibold mb-4">Real-time Level Monitoring</h2>
-            <LineChart width={500} height={300} data={data}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="time" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Line 
-                type="monotone" 
-                dataKey="level" 
-                stroke="#2563eb" 
-                strokeWidth={2}
-              />
-            </LineChart>
+            <div className="w-full h-[300px] relative">
+              <LineChart width={window.innerWidth < 500 ? 300 : 500} height={300} data={data} 
+                        margin={{ top: 5, right: 20, bottom: 5, left: 0 }}
+                        style={{ width: '100%', height: '100%' }}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="time" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Line 
+                  type="monotone" 
+                  dataKey="level" 
+                  stroke="#2563eb" 
+                  strokeWidth={2}
+                />
+              </LineChart>
+            </div>
           </div>
 
           {/* Control Panel */}
