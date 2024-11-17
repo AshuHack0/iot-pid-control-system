@@ -21,11 +21,11 @@ function Dashboard() {
 
   // Dummy data for the graph - replace with real-time data
   const data = [
-    { time: '0s', level: 45 },
-    { time: '5s', level: 48 },
-    { time: '10s', level: 52 },
-    { time: '15s', level: 50 },
-    { time: '20s', level: 51 },
+    { time: '0s', level: 0 },
+    { time: '5s', level: 0 },
+    { time: '10s', level: 0 },
+    { time: '15s', level: 0 },
+    { time: '20s', level: 0 },
   ];
 
   const handleLogout = () => {
@@ -62,11 +62,14 @@ function Dashboard() {
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 items-center justify-items-center sm:justify-items-end">
               <div className="text-center sm:text-right">
                 <p className="text-xs sm:text-sm text-gray-500">System Status</p>
-                <p className="text-xs sm:text-sm font-medium text-green-600">● Online</p>
+                <p className="text-xs sm:text-sm font-medium text-red-600">● Ofline</p>
               </div>
               <div className="text-center sm:text-right">
                 <p className="text-xs sm:text-sm text-gray-500">Last Updated</p>
-                <p className="text-xs sm:text-sm font-medium">{new Date().toLocaleTimeString()}</p>
+                <p className="text-xs sm:text-sm font-medium">
+                  {/* {new Date().toLocaleTimeString()}
+                   */} .......
+                  </p>
               </div>
               <button className="col-span-2 sm:col-span-1 w-full sm:w-auto px-3 py-1.5 text-xs sm:text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
                 Generate Report
@@ -220,11 +223,11 @@ function Dashboard() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-gray-50 p-4 rounded-lg">
                     <p className="text-sm text-gray-500">Current Level</p>
-                    <p className="text-lg font-semibold">51%</p>
+                    <p className="text-lg font-semibold">-%</p>
                   </div>
                   <div className="bg-gray-50 p-4 rounded-lg">
                     <p className="text-sm text-gray-500">Control Output</p>
-                    <p className="text-lg font-semibold">75%</p>
+                    <p className="text-lg font-semibold">-%</p>
                   </div>
                 </div>
               </div>
@@ -247,19 +250,19 @@ function Dashboard() {
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-gray-50 p-4 rounded-lg">
                 <p className="text-sm text-gray-500">Tank Capacity</p>
-                <p className="text-lg font-semibold">1000 L</p>
+                <p className="text-lg font-semibold">- L</p>
               </div>
               <div className="bg-gray-50 p-4 rounded-lg">
                 <p className="text-sm text-gray-500">Flow Rate</p>
-                <p className="text-lg font-semibold">10 L/min</p>
+                <p className="text-lg font-semibold">- L/min</p>
               </div>
               <div className="bg-gray-50 p-4 rounded-lg">
                 <p className="text-sm text-gray-500">Temperature</p>
-                <p className="text-lg font-semibold">25°C</p>
+                <p className="text-lg font-semibold">-°C</p>
               </div>
               <div className="bg-gray-50 p-4 rounded-lg">
                 <p className="text-sm text-gray-500">Pressure</p>
-                <p className="text-lg font-semibold">1.2 bar</p>
+                <p className="text-lg font-semibold">- bar</p>
               </div>
             </div>
           </div>
