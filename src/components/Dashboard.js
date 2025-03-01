@@ -13,6 +13,7 @@ import {
   Legend
 } from 'chart.js';
 import { motion, useMotionValue, useTransform, AnimatePresence } from 'framer-motion';
+import { OPENAI_CONFIG } from '../config/openai';
 
 ChartJS.register(
   CategoryScale,
@@ -566,6 +567,211 @@ const ParameterInput = ({ label, value, onChange, unit = "" }) => (
     </div>
   </motion.div>
 );
+
+// Add this new component before the Dashboard component
+const AIChatBot = () => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [messages, setMessages] = useState([
+    { type: 'bot', text: 'Hello! I\'m your Process Control Assistant. How can I help you today?' }
+  ]);
+  const [inputValue, setInputValue] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const messagesEndRef = useRef(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  const callOpenAI = async (userMessage) => {
+    try {
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${OPENAI_CONFIG.apiKey}`
+        },
+        body: JSON.stringify({
+          model: OPENAI_CONFIG.model,
+          messages: [
+            {
+              role: "system",
+              content: "You are a helpful process control assistant. You help users understand PID control, process automation, and industrial control systems. Keep responses concise and practical."
+            },
+            ...messages.map(msg => ({
+              role: msg.type === 'user' ? 'user' : 'assistant',
+              content: msg.text
+            })),
+            {
+              role: "user",
+              content: userMessage
+            }
+          ],
+          temperature: OPENAI_CONFIG.temperature,
+          max_tokens: OPENAI_CONFIG.max_tokens
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('API request failed');
+      }
+
+      const data = await response.json();
+      return data.choices[0].message.content;
+    } catch (error) {
+      console.error('OpenAI API Error:', error);
+      return "I apologize, but I'm having trouble connecting to my knowledge base right now. Please try again later.";
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!inputValue.trim() || isLoading) return;
+
+    const userMessage = inputValue.trim();
+    setInputValue('');
+    setIsLoading(true);
+
+    // Add user message immediately
+    setMessages(prev => [...prev, { type: 'user', text: userMessage }]);
+
+    // Add typing indicator
+    setMessages(prev => [...prev, { type: 'bot', text: '...', isTyping: true }]);
+
+    // Get AI response
+    const aiResponse = await callOpenAI(userMessage);
+
+    // Remove typing indicator and add AI response
+    setMessages(prev => prev.filter(msg => !msg.isTyping));
+    setMessages(prev => [...prev, { type: 'bot', text: aiResponse }]);
+
+    setIsLoading(false);
+  };
+
+  return (
+    <motion.div
+      className="fixed bottom-4 right-4 z-50"
+      initial={{ scale: 0.9, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      transition={{ duration: 0.3 }}
+    >
+      {/* Chat Button */}
+      <motion.button
+        onClick={() => setIsOpen(!isOpen)}
+        className="bg-blue-500 hover:bg-blue-600 text-white rounded-full p-4 shadow-lg
+                   flex items-center justify-center transition-colors duration-200"
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+      >
+        {isOpen ? (
+          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        ) : (
+          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                  d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+          </svg>
+        )}
+      </motion.button>
+
+      {/* Chat Window */}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.95 }}
+            transition={{ duration: 0.2 }}
+            className="absolute bottom-16 right-0 w-96 bg-gray-900 rounded-xl shadow-2xl
+                       border border-gray-700 overflow-hidden"
+          >
+            {/* Chat Messages */}
+            <div className="h-96 overflow-y-auto p-4 space-y-4">
+              {messages.map((message, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div
+                    className={`max-w-[80%] p-3 rounded-xl ${
+                      message.type === 'user'
+                        ? 'bg-blue-500 text-white rounded-br-none'
+                        : 'bg-gray-800 text-gray-200 rounded-bl-none'
+                    }`}
+                  >
+                    {message.isTyping ? (
+                      <motion.div
+                        className="flex space-x-1"
+                        animate={{ opacity: [0.4, 1, 0.4] }}
+                        transition={{ duration: 1.5, repeat: Infinity }}
+                      >
+                        <div className="w-2 h-2 bg-gray-400 rounded-full" />
+                        <div className="w-2 h-2 bg-gray-400 rounded-full" />
+                        <div className="w-2 h-2 bg-gray-400 rounded-full" />
+                      </motion.div>
+                    ) : (
+                      message.text
+                    )}
+                  </div>
+                </motion.div>
+              ))}
+              <div ref={messagesEndRef} />
+            </div>
+
+            {/* Chat Input */}
+            <form onSubmit={handleSubmit} className="p-4 border-t border-gray-700">
+              <div className="flex space-x-2">
+                <input
+                  type="text"
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  placeholder="Type your message..."
+                  disabled={isLoading}
+                  className="flex-1 bg-gray-800 text-white rounded-lg px-4 py-2
+                           border border-gray-700 focus:outline-none focus:border-blue-500
+                           placeholder-gray-500 disabled:opacity-50"
+                />
+                <motion.button
+                  type="submit"
+                  className="bg-blue-500 text-white rounded-lg px-4 py-2
+                           hover:bg-blue-600 transition-colors duration-200
+                           disabled:opacity-50 disabled:cursor-not-allowed"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  disabled={!inputValue.trim() || isLoading}
+                >
+                  {isLoading ? (
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 1, repeat: Infinity }}
+                    >
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                    </motion.div>
+                  ) : (
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                            d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                    </svg>
+                  )}
+                </motion.button>
+              </div>
+            </form>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+};
 
 const Dashboard = () => {
   // State for process parameters
@@ -1122,6 +1328,7 @@ const Dashboard = () => {
           </div>
         </div>
       </motion.div>
+      <AIChatBot />
     </div>
   );
 };
