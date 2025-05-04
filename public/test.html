@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title></title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style type="text/css">
+      /* globals.css */
+      @import url("https://cdnjs.cloudflare.com/ajax/libs/meyer-reset/2.0/reset.min.css");
+      @import url("https://fonts.googleapis.com/css?family=Space+Grotesk:700|Figtree:400,500,700,600|Plus+Jakarta+Sans:700|Inter:400");
+      * {
+        -webkit-font-smoothing: antialiased;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0px;
+        height: 100%;
+      }
+      /* a blue color as a generic focus style */
+      button:focus-visible {
+        outline: 2px solid #4a90e2 !important;
+        outline: -webkit-focus-ring-color auto 5px !important;
+      }
+      a {
+        text-decoration: none;
+      }
+
+      /* styleguide.css */
+      :root {
+        --text-primary: rgba(16, 24, 40, 1);
+        --text-secondary: rgba(102, 112, 133, 1);
+        --bg-light: rgba(244, 244, 254, 1);
+        --bg: rgba(255, 255, 255, 1);
+        --titles-primary-font-family: "Plus Jakarta Sans", Helvetica;
+        --titles-primary-font-weight: 700;
+        --titles-primary-font-size: 72px;
+        --titles-primary-letter-spacing: -1.44px;
+        --titles-primary-line-height: 104.99999523162842%;
+        --titles-primary-font-style: normal;
+        --titles-sec-font-family: "Figtree", Helvetica;
+        --titles-sec-font-weight: 500;
+        --titles-sec-font-size: 24px;
+        --titles-sec-letter-spacing: 0px;
+        --titles-sec-line-height: 139.9999976158142%;
+        --titles-sec-font-style: normal;
+        --body-primary-font-family: "Figtree", Helvetica;
+        --body-primary-font-weight: 500;
+        --body-primary-font-size: 24px;
+        --body-primary-letter-spacing: -0.72px;
+        --body-primary-line-height: 139.9999976158142%;
+        --body-primary-font-style: normal;
+        --button-primary-font-family: "Figtree", Helvetica;
+        --button-primary-font-weight: 600;
+        --button-primary-font-size: 16px;
+        --button-primary-letter-spacing: -0.32px;
+        --button-primary-line-height: 80.0000011920929%;
+        --button-primary-font-style: normal;
+        --body-sec-font-family: "Figtree", Helvetica;
+        --body-sec-font-weight: 500;
+        --body-sec-font-size: 20px;
+        --body-sec-letter-spacing: -0.6px;
+        --body-sec-line-height: 139.9999976158142%;
+        --body-sec-font-style: normal;
+        --variable-collection-purple: rgba(77, 77, 255, 1);
+        --variable-collection-yellow: rgba(249, 190, 89, 1);
+        --variable-collection-grey-button: rgba(180, 186, 201, 1);
+        --variable-collection-purple-dark: rgba(61, 61, 224, 1);
+        --variable-collection-grey-dark: rgba(83, 93, 121, 1);
+        --variable-collection-black: rgba(15, 15, 15, 1);
+        --variable-collection-purple-light: rgba(173, 173, 255, 1);
+        --email-l: 16px;
+        --email-m: 12px;
+        --email-XL: 24px;
+      }
+
+      /* Media Queries */
+      @media screen and (max-width: 640px) {
+        .container {
+          width: 100% !important;
+        }
+        .content-width {
+          width: 100% !important;
+        }
+        .logo {
+          font-size: 24px !important;
+        }
+        .hero-title {
+          font-size: 36px !important;
+          line-height: 1.2 !important;
+        }
+        .hero-subtitle {
+          font-size: 16px !important;
+        }
+        .button {
+          font-size: 14px !important;
+          padding: 12px 24px !important;
+        }
+        .feature-card {
+          display: block !important;
+          width: 100% !important;
+        }
+        .feature-image {
+          width: 100% !important;
+          height: 200px !important;
+          margin-bottom: 20px !important;
+        }
+        .feature-content {
+          width: 100% !important;
+          padding-left: 0 !important;
+        }
+        .social-icons img {
+          width: 20px !important;
+          height: 20px !important;
+        }
+        .footer-content {
+          display: block !important;
+          text-align: center !important;
+        }
+        .footer-links, .footer-social {
+          width: 100% !important;
+          text-align: center !important;
+          margin-top: 20px !important;
+        }
+      }
+
+      @media screen and (max-width: 480px) {
+        .hero-title {
+          font-size: 32px !important;
+        }
+        .feature-title {
+          font-size: 24px !important;
+        }
+        .padding {
+          padding: 20px !important;
+        }
+      }
+    </style>
+  </head>
+  <body style="background-color: #efeffc;">
+    <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #ffffff;">
+      <tr>
+        <td align="center" style="background-color: #efeffc;">
+          <table width="600" border="0" cellspacing="0" cellpadding="0" style="background-color: #ffffff; background-image: url('https://res.cloudinary.com/dmsbvsful/image/upload/v1744572580/Group_3466123_vplfsl.png'); background-size: cover; background-position:top ; background-repeat: no-repeat; background-blend-mode: multiply;  background-size: contain;  background-repeat: no-repeat; background-blend-mode: multiply;">
+            <!-- Header -->
+            <tr>
+              <td style="padding: 20px 40px; border-bottom: 1px solid #adadff;">
+                <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                  <tr>
+                    <td width="50%" style="text-align: left;">
+                      <p style="margin: 0; font-family: 'Space Grotesk', Helvetica; font-weight: 700; font-size: 32px; letter-spacing: -0.96px; line-height: 25.6px;">
+                        <span style="color: #000000;">MyFuse</span>
+                        <span style="color: #f9be59;">.</span>
+                        <span style="color: #000000;">In</span>
+                      </p>
+                    </td>
+                    <td width="50%" style="text-align: right;">
+                      <table border="0" cellspacing="0" cellpadding="0" style="display: inline-block;">
+                        <tr>
+                          <td style="padding: 0 8px;">
+                            <img src="https://cdn.animaapp.com/projects/67cede37f39a8e7732efe194/releases/67cede8ef12568aff2bca3b2/img/social-icon.svg" width="24" height="24" style="display: block;" />
+                          </td>
+                          <td style="padding: 0 8px;">
+                            <img src="https://cdn.animaapp.com/projects/67cede37f39a8e7732efe194/releases/67cede8ef12568aff2bca3b2/img/lozenge@2x.png" width="24" height="17" style="display: block;" />
+                          </td>
+                          <td style="padding: 0 8px;">
+                            <img src="https://cdn.animaapp.com/projects/67cede37f39a8e7732efe194/releases/67cede8ef12568aff2bca3b2/img/group@2x.png" width="24" height="24" style="display: block;" />
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <!-- Hero Section -->
+            <tr>
+              <td style="padding: 40px 24px; text-align: center;">
+                <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                  <tr>
+                    <td>
+                      <img src="https://cdn.animaapp.com/projects/67cede37f39a8e7732efe194/releases/67cede8ef12568aff2bca3b2/img/clip-happy-up-1@2x.png" width="106" height="121" style="display: block; margin: 0 auto;" />
+                    </td>
+                  </tr>
+                  <tr style="text-align: center;">
+                    <td style="padding: 20px 0;">
+                      <h1 style="margin: 0; font-family: 'Figtree', Helvetica; font-weight: 700; font-size: 40px; line-height: 60px; color: #000000;">Your Journey Begins</h1>
+                    </td>
+                  </tr>
+                  <tr style="text-align: center;">
+                    <td style="padding-bottom: 20px;">
+                      <p style="margin: 0; font-family: 'Figtree', Helvetica; font-weight: 400; font-size: 16px; line-height: 20px; color: #667085;">Discover a new way to transform your resume with MyFuse.In</p>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <table border="0" cellspacing="0" cellpadding="0" style="margin: 0 auto;">
+                        <tr>
+                          <td style="background-color: #4d4dff; border-radius: 24px; padding: 16px 32px;">
+                            <p style="margin: 0; font-family: 'Figtree', Helvetica; font-weight: 600; font-size: 16px; color: #ffffff;">START NOW</p>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <!-- Features Section -->
+            <tr>
+              <td style="padding: 40px 24px;">
+                <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                  <tr>
+                    <td style="text-align: center; padding-bottom: 20px;">
+                      <h2 style="margin: 0; font-family: 'Figtree', Helvetica; font-weight: 600; font-size: 28px; line-height: 36px; color: var(--text-primary);">Features</h2>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: center; padding-bottom: 40px;">
+                      <p style="margin: 0; font-family: 'Figtree', Helvetica; font-weight: 400; font-size: 16px; line-height: 20px; color: var(--text-secondary);">Explore how sustainable furniture choices can make a positive impact on the environment without compromising on style or comfort</p>
+                    </td>
+                  </tr>
+
+                  <!-- Feature Cards -->
+                  <tr>
+                    <td>
+                      <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                        <!-- Feature Card 1 -->
+                        <tr>
+                          <td style="background-color: var(--bg-light); border-radius: 20px; padding: 40px 20px; margin-bottom: 20px;">
+                            <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                              <tr>
+                                <td width="40%" style="vertical-align: top;">
+                                  <div style="background-color: #d9d9d9; border-radius: 13px; width: 212px; height: 202px;"></div>
+                                </td>
+                                <td width="60%" style="vertical-align: top; padding-left: 20px;">
+                                  <h3 style="margin: 0 0 10px 0; font-family: 'Plus Jakarta Sans', Helvetica; font-weight: 700; font-size: 32px; line-height: 38.4px; color: #0e0e0e;">Explore More Career Guides</h3>
+                                  <p style="margin: 0 0 20px 0; font-family: 'Figtree', Helvetica; font-weight: 500; font-size: 16px; line-height: 22.4px; color: #8e8e8e;">Add a brief description here to give users an overview of your content.</p>
+                                  <table border="0" cellspacing="0" cellpadding="0">
+                                    <tr>
+                                      <td style="background-color: #4d4dff; border-radius: 24px; padding: 16px 32px;">
+                                        <p style="margin: 0; font-family: 'Figtree', Helvetica; font-weight: 600; font-size: 16px; color: #ffffff;">READ MORE</p>
+                                      </td>
+                                    </tr>
+                                  </table>
+                                </td>
+                              </tr>
+                            </table>
+                          </td>
+                        </tr>
+
+                        <!-- Feature Card 2 -->
+                        <tr>
+                          <td style="background-color: var(--bg-light); border-radius: 20px; padding: 40px 20px; margin-bottom: 20px;">
+                            <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                              <tr>
+                                <td width="40%" style="vertical-align: top;">
+                                  <div style="background-color: #d9d9d9; border-radius: 13px; width: 212px; height: 202px;"></div>
+                                </td>
+                                <td width="60%" style="vertical-align: top; padding-left: 20px;">
+                                  <h3 style="margin: 0 0 10px 0; font-family: 'Plus Jakarta Sans', Helvetica; font-weight: 700; font-size: 32px; line-height: 38.4px; color: #0e0e0e;">Explore More Career Guides</h3>
+                                  <p style="margin: 0 0 20px 0; font-family: 'Figtree', Helvetica; font-weight: 500; font-size: 16px; line-height: 22.4px; color: #8e8e8e;">Add a brief description here to give users an overview of your content.</p>
+                                  <table border="0" cellspacing="0" cellpadding="0">
+                                    <tr>
+                                      <td style="background-color: #4d4dff; border-radius: 24px; padding: 16px 32px;">
+                                        <p style="margin: 0; font-family: 'Figtree', Helvetica; font-weight: 600; font-size: 16px; color: #ffffff;">READ MORE</p>
+                                      </td>
+                                    </tr>
+                                  </table>
+                                </td>
+                              </tr>
+                            </table>
+                          </td>
+                        </tr>
+
+                        <!-- Feature Card 3 -->
+                        <tr>
+                          <td style="background-color: var(--bg-light); border-radius: 20px; padding: 40px 20px;">
+                            <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                              <tr>
+                                <td width="40%" style="vertical-align: top;">
+                                  <div style="background-color: #d9d9d9; border-radius: 13px; width: 212px; height: 202px;"></div>
+                                </td>
+                                <td width="60%" style="vertical-align: top; padding-left: 20px;">
+                                  <h3 style="margin: 0 0 10px 0; font-family: 'Plus Jakarta Sans', Helvetica; font-weight: 700; font-size: 32px; line-height: 38.4px; color: #0e0e0e;">Explore More Career Guides</h3>
+                                  <p style="margin: 0 0 20px 0; font-family: 'Figtree', Helvetica; font-weight: 500; font-size: 16px; line-height: 22.4px; color: #8e8e8e;">Add a brief description here to give users an overview of your content.</p>
+                                  <table border="0" cellspacing="0" cellpadding="0">
+                                    <tr>
+                                      <td style="background-color: #4d4dff; border-radius: 24px; padding: 16px 32px;">
+                                        <p style="margin: 0; font-family: 'Figtree', Helvetica; font-weight: 600; font-size: 16px; color: #ffffff;">READ MORE</p>
+                                      </td>
+                                    </tr>
+                                  </table>
+                                </td>
+                              </tr>
+                            </table>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <!-- Dashboard Button -->
+            <tr>
+              <td style="padding: 0 24px 40px 24px; text-align: center;">
+                <table border="0" cellspacing="0" cellpadding="0" style="margin: 0 auto;">
+                  <tr>
+                    <td style="background-color: #4d4dff; border-radius: 24px; padding: 16px 32px;">
+                      <p style="margin: 0; font-family: 'Figtree', Helvetica; font-weight: 600; font-size: 16px; color: #ffffff;">GO TO MY FUSE DASHBOARD</p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <!-- Footer -->
+            <tr>
+              <td style="background-color: #4d4dff; padding: 40px 24px;">
+                <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                  <tr>
+                    <td width="50%" style="vertical-align: top;">
+                      <p style="margin: 0; font-family: 'Space Grotesk', Helvetica; font-weight: 700; font-size: 35.1px; line-height: 28.1px;">
+                        <span style="color: #ffffff;">MyFuse</span>
+                        <span style="color: #f9be59;">.</span>
+                        <span style="color: #ffffff;">In</span>
+                      </p>
+                      <p style="margin: 20px 0 0 0; font-family: 'Inter', Helvetica; font-weight: 400; font-size: 12px; line-height: 24px; color: #ffffff;">Privacy Policy | Terms & Conditions</p>
+                    </td>
+                    <td width="50%" style="vertical-align: top; text-align: right;">
+                      <table border="0" cellspacing="0" cellpadding="0" style="display: inline-block;">
+                        <tr>
+                          <td style="padding: 0 8px;">
+                            <img src="https://cdn.animaapp.com/projects/67cede37f39a8e7732efe194/releases/67cede8ef12568aff2bca3b2/img/social-icon-1.svg" width="18" height="18" style="display: block;" />
+                          </td>
+                          <td style="padding: 0 8px;">
+                            <img src="https://cdn.animaapp.com/projects/67cede37f39a8e7732efe194/releases/67cede8ef12568aff2bca3b2/img/social-icon-2.svg" width="18" height="18" style="display: block;" />
+                          </td>
+                          <td style="padding: 0 8px;">
+                            <img src="https://cdn.animaapp.com/projects/67cede37f39a8e7732efe194/releases/67cede8ef12568aff2bca3b2/img/social-icon-3.svg" width="18" height="18" style="display: block;" />
+                          </td>
+                        </tr>
+                      </table>
+                      <p style="margin: 20px 0 0 0; font-family: 'Inter', Helvetica; font-weight: 400; font-size: 12px; line-height: 24px; color: #ffffff; text-align: right;">Need Help? Visit Our Help Center</p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

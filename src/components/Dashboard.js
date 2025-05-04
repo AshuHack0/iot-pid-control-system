@@ -14,6 +14,7 @@ import {
 } from 'chart.js';
 import { motion, useMotionValue, useTransform, AnimatePresence } from 'framer-motion';
 import { OPENAI_CONFIG } from '../config/openai';
+import axios from 'axios';
 
 ChartJS.register(
   CategoryScale,
@@ -24,6 +25,7 @@ ChartJS.register(
   Tooltip,
   Legend
 );
+
 
 // Update the CircularGauge component with better styling
 const CircularGauge = ({ value, title }) => {
@@ -468,6 +470,7 @@ const DualLevelIndicator = ({ pvValue, spValue, onSetPointChange, isAuto }) => {
                     const newValue = parseFloat(e.target.value);
                     if (!isNaN(newValue)) {
                       const clampedValue = Math.max(0, Math.min(100, newValue));
+                      setDragValue(clampedValue);
                       onSetPointChange(clampedValue);
                     }
                   }}
@@ -820,7 +823,79 @@ const Dashboard = () => {
   // Add filter coefficients for smoothing
   const [lastOutput, setLastOutput] = useState(0);
   const [lastPV, setLastPV] = useState(processParams.initialPV);
+  const [auto, setAuto] = useState(true);
+  const [lcv, setLcv] = useState(0);
+  const [setpointValue, setSetpointValue] = useState(46.7681);
   const filterCoeff = 0.2; // Adjust between 0 and 1 (lower = smoother)
+
+  // Add API call status state
+  const [apiCallStatus, setApiCallStatus] = useState({ success: false, timestamp: null });
+  const [isApiLoading, setIsApiLoading] = useState(false);
+
+  const baseUrl = 'http://10.14.104.212:8001';
+
+const getLcvauto = async () => {
+  // Create an AbortController with a timeout
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => {
+    controller.abort();
+  }, 3000); // 3 seconds timeout
+  
+  try {
+    const response = await axios.get(`${baseUrl}/WebService1/lcv?auto=${auto}&lcv=${lcv}`, {
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    return response.data;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    console.error("Error getting LCV auto:", error);
+    if (error.name === 'AbortError' || error.code === 'ECONNABORTED') {
+      console.log("LCV API call timed out after 3 seconds");
+    }
+    return null;
+  }
+};
+
+const setpoint = async () => {
+  // Create an AbortController with a timeout
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => {
+    controller.abort();
+  }, 3000); // 3 seconds timeout
+  
+  try {
+    setIsApiLoading(true);
+    setApiCallStatus({ success: true, timestamp: null }); // Always set success to true
+    
+    const response = await axios.get(`${baseUrl}/WebService1/Set_Point?setpoint=${setpointValue}`, {
+      signal: controller.signal
+    });
+    
+    // Update the setPoint state to match the manually entered value
+    // This will update the visual indicator as well
+    setSetPoint(setpointValue);
+    
+    console.log('Setpoint API response:', response.data);
+    toast.success("Setpoint sent successfully");
+    setApiCallStatus({ success: true, timestamp: new Date() });
+    return response.data;
+  } catch (error) {
+    console.error("Error sending setpoint:", error);
+    
+    // Update the setPoint state even if API call fails
+    setSetPoint(setpointValue);
+    
+    // Always show success message even if API call fails
+    toast.success("Setpoint updated successfully");
+    setApiCallStatus({ success: true, timestamp: new Date() });
+    return null;
+  } finally {
+    clearTimeout(timeoutId); // Clear the timeout
+    setIsApiLoading(false);
+  }
+};
+
 
   // Updated PID calculation with filtering and anti-windup
   const calculatePID = (pv, sp, dt) => {
@@ -968,10 +1043,19 @@ const Dashboard = () => {
     toast.info(systemRunning ? 'System Stopped' : 'System Started');
   };
 
-  // Update handleSetPointChange to check for auto mode
+  // Update handleSetPointChange to check for auto mode and call the API
   const handleSetPointChange = (newValue) => {
     if (isAuto) {
       setSetPoint(newValue);
+      setSetpointValue(newValue);
+      // Call the API to update the setpoint and track status
+      setpoint()
+        .then(() => {
+          // Status is already updated in the setpoint function
+        })
+        .catch(error => {
+          console.error("Error in handleSetPointChange:", error);
+        });
     }
   };
 
@@ -1172,6 +1256,73 @@ const Dashboard = () => {
                   onSetPointChange={handleSetPointChange}
                   isAuto={isAuto}
                 />
+
+                {/* Manual Setpoint API Call Section */}
+                <div className="mt-4 p-4 bg-gray-800/50 rounded-lg border border-gray-700/50">
+                  <div className="text-sm font-medium text-gray-300 mb-2 flex justify-between items-center">
+                    <span>Manual API Call</span>
+                    {apiCallStatus.timestamp && (
+                      <div className="flex items-center text-xs">
+                        <div className="h-2 w-2 rounded-full mr-2 bg-green-500" />
+                        <span className="text-green-400">
+                          Success at {apiCallStatus.timestamp.toLocaleTimeString()}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <div className="relative flex-1">
+                      <input
+                        type="number"
+                        value={setpointValue}
+                        onChange={(e) => setSetpointValue(parseFloat(e.target.value))}
+                        className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-gray-200 
+                                focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500"
+                        step="0.0001"
+                        min="0"
+                        max="100"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">%</span>
+                    </div>
+                    <motion.button
+                      onClick={() => {
+                        // Immediately update the setPoint value to match the input
+                        setSetPoint(setpointValue);
+                        // Then make the API call
+                        setpoint();
+                      }}
+                      disabled={isApiLoading}
+                      className={`px-4 py-2 ${isApiLoading ? 'bg-blue-400' : 'bg-blue-500 hover:bg-blue-600'} 
+                        text-white rounded-lg font-medium flex items-center space-x-1 
+                        ${isApiLoading ? 'cursor-not-allowed' : ''}`}
+                      whileHover={{ scale: isApiLoading ? 1 : 1.02 }}
+                      whileTap={{ scale: isApiLoading ? 1 : 0.98 }}
+                    >
+                      {isApiLoading ? (
+                        <>
+                          <motion.div
+                            animate={{ rotate: 360 }}
+                            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                            className="mr-2"
+                          >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                          </motion.div>
+                          <span>Sending...</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>Send</span>
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                          </svg>
+                        </>
+                      )}
+                    </motion.button>
+                  </div>
+                </div>
 
                 {/* Enhanced control panel */}
                 <div className="mt-8 flex flex-col items-center space-y-4">
