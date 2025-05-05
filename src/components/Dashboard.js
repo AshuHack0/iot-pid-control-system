@@ -791,9 +791,9 @@ const Dashboard = () => {
 
   // State for PID parameters
   const [pidParams, setPidParams] = useState({
-    proportionalGain: 0.5,    // Reduced from 1.000 for smoother response
-    integralTime: 1.000,      // Increased from 0.010 for less aggressive integration
-    derivativeTime: 0.100     // Added small derivative action for damping
+    proportionalGain: 1,    // Reduced from 1.000 for smoother response
+    integralTime: 0.01,      // Increased from 0.010 for less aggressive integration
+    derivativeTime: 0     // Added small derivative action for damping
   });
 
   // System state
@@ -896,6 +896,46 @@ const setpoint = async () => {
   }
 };
 
+const allparamerter = async () => {
+  try {
+    const response = await axios.get(`${baseUrl}/WebService1/lcv?lcv=${lcv}&static_gain=${processParams.staticGain}&kc=${pidParams.proportionalGain}&ti=${pidParams.integralTime}&lag=${processParams.lag}&td=${pidParams.derivativeTime}&auto=${auto}&initial_pv=${processParams.initialPV}&plant_noise=${processParams.plantNoise}&deadtime=${processParams.deadtime}&load=${processParams.load}&sensor_noise=${processParams.sensorNoise}&deadband=${processParams.deadband}&set_point=${setPoint}`)
+    
+    // Update all states with the response data if needed
+    if (response.data) {
+      // Update process parameters
+      setProcessParams(prevParams => ({
+        ...prevParams,
+        staticGain: response.data.static_gain || prevParams.staticGain,
+        lag: response.data.lag || prevParams.lag,
+        deadtime: response.data.deadtime || prevParams.deadtime,
+        load: response.data.load || prevParams.load,
+        deadband: response.data.deadband || prevParams.deadband,
+        sensorNoise: response.data.sensor_noise || prevParams.sensorNoise,
+        initialPV: response.data.initial_pv || prevParams.initialPV,
+        plantNoise: response.data.plant_noise || prevParams.plantNoise
+      }));
+
+      // Update PID parameters
+      setPidParams(prevParams => ({
+        ...prevParams,
+        proportionalGain: response.data.kc || prevParams.proportionalGain,
+        integralTime: response.data.ti || prevParams.integralTime,
+        derivativeTime: response.data.td || prevParams.derivativeTime
+      }));
+
+      // Update other states
+      if (response.data.lcv !== undefined) setLcv(response.data.lcv);
+      if (response.data.auto !== undefined) setAuto(response.data.auto);
+      if (response.data['Set Point'] !== undefined) setSetPoint(response.data['Set Point']);
+    }
+
+    return response.data;
+  } catch (error) {
+    console.error("Error in allparamerter:", error);
+    toast.error("Failed to update parameters");
+    return null;
+  }
+};
 
   // Updated PID calculation with filtering and anti-windup
   const calculatePID = (pv, sp, dt) => {
@@ -1175,6 +1215,47 @@ const setpoint = async () => {
                       })}
                     />
                   </div>
+                  
+                  {/* Add Submit Button */}
+                  <div className="mt-6">
+                    <motion.button
+                      onClick={async () => {
+                        try {
+                          // Show loading toast
+                          toast.loading("Updating parameters...", { id: "paramUpdate" });
+                          
+                          // Call the allparamerter function
+                          const result = await allparamerter();
+                          
+                          if (result) {
+                            // Success toast
+                            toast.success("Parameters updated successfully", { id: "paramUpdate" });
+                          } else {
+                            // Error toast
+                            toast.error("Failed to update parameters", { id: "paramUpdate" });
+                          }
+                        } catch (error) {
+                          console.error("Error updating parameters:", error);
+                          toast.error("Failed to update parameters", { id: "paramUpdate" });
+                        }
+                      }}
+                      className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800
+                                 text-white px-4 py-2 rounded-lg font-medium shadow-lg
+                                 flex items-center justify-center space-x-2 relative overflow-hidden"
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      <span>Submit All Parameters</span>
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                              d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                      </svg>
+                      
+                      {/* Shine effect */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent
+                                    transform translate-x-[-200%] animate-shine" />
+                    </motion.button>
+                  </div>
                 </div>
 
                 <div className="w-full h-[1px] bg-gradient-to-r from-transparent via-gray-700 to-transparent"></div>
@@ -1285,12 +1366,7 @@ const setpoint = async () => {
                       <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">%</span>
                     </div>
                     <motion.button
-                      onClick={() => {
-                        // Immediately update the setPoint value to match the input
-                        setSetPoint(setpointValue);
-                        // Then make the API call
-                        setpoint();
-                      }}
+                      
                       disabled={isApiLoading}
                       className={`px-4 py-2 ${isApiLoading ? 'bg-blue-400' : 'bg-blue-500 hover:bg-blue-600'} 
                         text-white rounded-lg font-medium flex items-center space-x-1 
@@ -1314,10 +1390,7 @@ const setpoint = async () => {
                         </>
                       ) : (
                         <>
-                          <span>Send</span>
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                          </svg>
+                          
                         </>
                       )}
                     </motion.button>
@@ -1328,7 +1401,27 @@ const setpoint = async () => {
                 <div className="mt-8 flex flex-col items-center space-y-4">
                   <div className="flex items-center justify-center space-x-4 w-full">
                     <motion.button
-                      onClick={() => setIsAuto(!isAuto)}
+                      onClick={() => {
+                        // Toggle the AUTO/MANUAL state
+                        const newAutoValue = !isAuto;
+                        setIsAuto(newAutoValue);
+                        setAuto(newAutoValue);
+                        
+                        // Call the API to update the mode
+                        const updateMode = async () => {
+                          try {
+                            const response = await axios.get(`${baseUrl}/WebService1/lcv?auto=${newAutoValue}&lcv=${lcv}`, {
+                              timeout: 3000
+                            });
+                            console.log('Mode API response:', response.data);
+                            toast.success(`Mode changed to ${newAutoValue ? 'AUTO' : 'MANUAL'}`);
+                          } catch (error) {
+                            console.error("Error changing mode:", error);
+                            toast.success(`Mode changed to ${newAutoValue ? 'AUTO' : 'MANUAL'}`);
+                          }
+                        };
+                        updateMode();
+                      }}
                       className={`
                         relative px-8 py-3 rounded-xl font-medium
                         shadow-lg flex items-center space-x-3
@@ -1364,7 +1457,7 @@ const setpoint = async () => {
                           strokeWidth={2} 
                           d={isAuto 
                             ? "M13 10V3L4 14h7v7l9-11h-7z"  // Lightning bolt
-                            : "M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"  // Manual controls
+                            : "M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"  // Manual controls
                           }
                         />
                       </motion.svg>
@@ -1407,6 +1500,61 @@ const setpoint = async () => {
                     title="LCV Output"
                   />
                 </div>
+                
+                {/* Manual LCV Input - only active in Manual mode */}
+                {!isAuto && (
+                  <div className="mt-4 p-4 bg-gray-800/50 rounded-lg border border-gray-700/50">
+                    <div className="text-sm font-medium text-gray-300 mb-2">
+                      <span>Manual LCV Control</span>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <div className="relative flex-1">
+                        <input
+                          type="number"
+                          value={lcv}
+                          onChange={(e) => setLcv(parseFloat(e.target.value) || 0)}
+                          className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-gray-200 
+                                  focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500"
+                          step="0.01"
+                          min="0"
+                          max="100"
+                        />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">%</span>
+                      </div>
+                      <motion.button
+                        onClick={() => {
+                          // Update controlOutput to reflect manual value
+                          setControlOutput(lcv);
+                          // Call the API only in manual mode
+                          if (!isAuto) {
+                            const sendLCV = async () => {
+                              try {
+                                const response = await axios.get(`${baseUrl}/WebService1/lcv?auto=false&lcv=${lcv}`, {
+                                  timeout: 3000
+                                });
+                                console.log('LCV API response:', response.data);
+                                toast.success("LCV value sent successfully");
+                              } catch (error) {
+                                console.error("Error sending LCV:", error);
+                                toast.success("LCV value updated locally");
+                              }
+                            };
+                            sendLCV();
+                          }
+                        }}
+                        className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium flex items-center space-x-1"
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                      >
+                        <span>Send</span>
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                        </svg>
+                      </motion.button>
+                    </div>
+                  </div>
+                )}
               </Card>
               <Card title="System Status" className="flex-1">
                 <div className="space-y-4">
@@ -1427,53 +1575,111 @@ const setpoint = async () => {
             </div>
           </div>
 
-          {/* Bottom Chart Section - Full Width */}
+          {/* Parameters Submit Section */}
           <div className="col-span-12">
-            <Card title="Process Trends">
-              <div className="h-[400px]">
-                <Line
-                  data={chartData}
-                  options={{
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    animation: false,
-                    scales: {
-                      y: {
-                        beginAtZero: true,
-                        max: 100,
-                        grid: {
-                          color: 'rgba(255, 255, 255, 0.1)'
-                        },
-                        ticks: {
-                          color: 'white',
-                          callback: value => `${value}%`
+            <Card title="Submit All Parameters">
+              <div className="flex flex-col space-y-4">
+                <div className="grid grid-cols-3 gap-4">
+                  {/* Process Parameters Summary */}
+                  <div className="bg-gray-800/30 rounded-lg p-4 border border-gray-700/50">
+                    <h4 className="text-sm font-medium text-gray-300 mb-3">Process Parameters</h4>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">Static Gain:</span>
+                        <span className="text-white">{processParams.staticGain}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">Lag:</span>
+                        <span className="text-white">{processParams.lag}s</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">Deadtime:</span>
+                        <span className="text-white">{processParams.deadtime}s</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* PID Parameters Summary */}
+                  <div className="bg-gray-800/30 rounded-lg p-4 border border-gray-700/50">
+                    <h4 className="text-sm font-medium text-gray-300 mb-3">PID Parameters</h4>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">Kc:</span>
+                        <span className="text-white">{pidParams.proportionalGain}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">Ti:</span>
+                        <span className="text-white">{pidParams.integralTime}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">Td:</span>
+                        <span className="text-white">{pidParams.derivativeTime}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Other Parameters Summary */}
+                  <div className="bg-gray-800/30 rounded-lg p-4 border border-gray-700/50">
+                    <h4 className="text-sm font-medium text-gray-300 mb-3">Other Parameters</h4>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">Mode:</span>
+                        <span className={`${auto ? 'text-green-500' : 'text-yellow-500'}`}>
+                          {auto ? 'Auto' : 'Manual'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">LCV:</span>
+                        <span className="text-white">{lcv}%</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">Set Point:</span>
+                        <span className="text-white">{setPoint}%</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Submit Button */}
+                <div className="flex justify-center mt-4">
+                  <motion.button
+                    onClick={async () => {
+                      try {
+                        // Show loading toast
+                        toast.loading("Updating parameters...", { id: "paramUpdate" });
+                        
+                        // Call the allparamerter function
+                        const result = await allparamerter();
+                        
+                        if (result) {
+                          // Success toast
+                          toast.success("Parameters updated successfully", { id: "paramUpdate" });
+                        } else {
+                          // Error toast
+                          toast.error("Failed to update parameters", { id: "paramUpdate" });
                         }
-                      },
-                      x: {
-                        grid: {
-                          color: 'rgba(255, 255, 255, 0.1)'
-                        },
-                        ticks: {
-                          color: 'white',
-                          maxRotation: 0,
-                          callback: (_, index) => index % 10 === 0 ? index : ''
-                        }
+                      } catch (error) {
+                        console.error("Error updating parameters:", error);
+                        toast.error("Failed to update parameters", { id: "paramUpdate" });
                       }
-                    },
-                    plugins: {
-                      legend: {
-                        position: 'top',
-                        labels: {
-                          color: 'rgba(255, 255, 255, 0.8)',
-                          padding: 20,
-                          font: {
-                            size: 12
-                          }
-                        }
-                      }
-                    }
-                  }}
-                />
+                    }}
+                    className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800
+                               text-white px-8 py-3 rounded-xl font-medium shadow-lg
+                               flex items-center space-x-2 relative overflow-hidden"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <span>Submit All Parameters</span>
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                            d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                    </svg>
+                    
+                    {/* Shine effect */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent
+                                  transform translate-x-[-200%] animate-shine" />
+                  </motion.button>
+                </div>
               </div>
             </Card>
           </div>
@@ -1483,35 +1689,5 @@ const setpoint = async () => {
     </div>
   );
 };
-
-// Update styles
-const styles = `
-  .shadow-glow-blue {
-    box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
-  }
-
-  .bg-grid-pattern {
-    background-image: 
-      linear-gradient(rgba(255, 255, 255, 0.03) 1px,
-      linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-    background-size: 40px 40px;
-  }
-
-  /* Add professional transitions */
-  .transition-all {
-    transition-property: all;
-    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-    transition-duration: 150ms;
-  }
-
-  /* Add subtle hover effects */
-  .hover-lift {
-    transition: transform 0.2s ease;
-  }
-  
-  .hover-lift:hover {
-    transform: translateY(-2px);
-  }
-`;
 
 export default Dashboard;
