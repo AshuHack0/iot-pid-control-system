@@ -420,8 +420,8 @@ const DualLevelIndicator = ({ pvValue, spValue, onSetPointChange, isAuto }) => {
             dragConstraints={containerRef}
             dragElastic={0}
             dragMomentum={false}
-            onDragStart={() => isAuto && setIsDragging(true)}
-            onDragEnd={() => isAuto && setIsDragging(false)}
+            onDragStart={() => isAuto && setIsDragging(1)}
+            onDragEnd={() => isAuto && setIsDragging(0)}
             onDrag={handleDrag}
             className={`absolute left-0 right-0 ${
               isAuto ? 'cursor-grab active:cursor-grabbing' : 'cursor-not-allowed'
@@ -810,7 +810,7 @@ const Dashboard = () => {
   });
 
   // Add isAuto state
-  const [isAuto, setIsAuto] = useState(true);
+  const [isAuto, setIsAuto] = useState(1);
 
   // Add state for control output (LCV)
   const [controlOutput, setControlOutput] = useState(0);
@@ -823,7 +823,7 @@ const Dashboard = () => {
   // Add filter coefficients for smoothing
   const [lastOutput, setLastOutput] = useState(0);
   const [lastPV, setLastPV] = useState(processParams.initialPV);
-  const [auto, setAuto] = useState(true);
+  const [auto, setAuto] = useState(1);
   const [lcv, setLcv] = useState(0);
   const [setpointValue, setSetpointValue] = useState(46.7681);
   const filterCoeff = 0.2; // Adjust between 0 and 1 (lower = smoother)
@@ -856,50 +856,13 @@ const getLcvauto = async () => {
     return null;
   }
 };
-
-const setpoint = async () => {
-  // Create an AbortController with a timeout
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => {
-    controller.abort();
-  }, 3000); // 3 seconds timeout
-  
-  try {
-    setIsApiLoading(true);
-    setApiCallStatus({ success: true, timestamp: null }); // Always set success to true
-    
-    const response = await axios.get(`${baseUrl}/WebService1/Set_Point?setpoint=${setpointValue}`, {
-      signal: controller.signal
-    });
-    
-    // Update the setPoint state to match the manually entered value
-    // This will update the visual indicator as well
-    setSetPoint(setpointValue);
-    
-    console.log('Setpoint API response:', response.data);
-    toast.success("Setpoint sent successfully");
-    setApiCallStatus({ success: true, timestamp: new Date() });
-    return response.data;
-  } catch (error) {
-    console.error("Error sending setpoint:", error);
-    
-    // Update the setPoint state even if API call fails
-    setSetPoint(setpointValue);
-    
-    // Always show success message even if API call fails
-    toast.success("Setpoint updated successfully");
-    setApiCallStatus({ success: true, timestamp: new Date() });
-    return null;
-  } finally {
-    clearTimeout(timeoutId); // Clear the timeout
-    setIsApiLoading(false);
-  }
-};
+ 
 
 const allparamerter = async () => {
   try {
+    console.log(`${baseUrl}/WebService1/lcv?lcv=${lcv}&static_gain=${processParams.staticGain}&kc=${pidParams.proportionalGain}&ti=${pidParams.integralTime}&lag=${processParams.lag}&td=${pidParams.derivativeTime}&auto=${auto}&initial_pv=${processParams.initialPV}&plant_noise=${processParams.plantNoise}&deadtime=${processParams.deadtime}&load=${processParams.load}&sensor_noise=${processParams.sensorNoise}&deadband=${processParams.deadband}&set_point=${setPoint}`)
+
     const response = await axios.get(`${baseUrl}/WebService1/lcv?lcv=${lcv}&static_gain=${processParams.staticGain}&kc=${pidParams.proportionalGain}&ti=${pidParams.integralTime}&lag=${processParams.lag}&td=${pidParams.derivativeTime}&auto=${auto}&initial_pv=${processParams.initialPV}&plant_noise=${processParams.plantNoise}&deadtime=${processParams.deadtime}&load=${processParams.load}&sensor_noise=${processParams.sensorNoise}&deadband=${processParams.deadband}&set_point=${setPoint}`)
-    
     // Update all states with the response data if needed
     if (response.data) {
       // Update process parameters
@@ -1089,13 +1052,7 @@ const allparamerter = async () => {
       setSetPoint(newValue);
       setSetpointValue(newValue);
       // Call the API to update the setpoint and track status
-      setpoint()
-        .then(() => {
-          // Status is already updated in the setpoint function
-        })
-        .catch(error => {
-          console.error("Error in handleSetPointChange:", error);
-        });
+     
     }
   };
 
