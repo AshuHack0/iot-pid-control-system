@@ -837,6 +837,691 @@ const AIChatBot = ({
   );
 };
 
+// Add these new AI helper functions
+const generatePIDSuggestions = async (processParams, pidParams, currentLevel, setPoint) => {
+  try {
+    const completion = await openai.chat.completions.create({
+      messages: [
+        {
+          role: "system",
+          content: `You are an expert in PID control tuning. Analyze the current parameters and system behavior to suggest optimal PID settings.
+          
+          Current Parameters:
+          Process:
+          - Static Gain: ${processParams.staticGain}
+          - Lag: ${processParams.lag}s
+          - Deadtime: ${processParams.deadtime}s
+          
+          PID:
+          - Kc: ${pidParams.proportionalGain}
+          - Ti: ${pidParams.integralTime}
+          - Td: ${pidParams.derivativeTime}
+          
+          Performance:
+          - Current Level: ${currentLevel}
+          - Setpoint: ${setPoint}
+          
+          Provide tuning suggestions in JSON format with:
+          {
+            "analysis": "brief analysis of current performance",
+            "recommendations": {
+              "Kc": number,
+              "Ti": number,
+              "Td": number
+            },
+            "explanation": "explanation of suggested changes"
+          }`
+        }
+      ],
+      model: "gpt-3.5-turbo",
+      temperature: 0.7,
+      response_format: { type: "json_object" }
+    });
+
+    return JSON.parse(completion.choices[0].message.content);
+  } catch (error) {
+    console.error('Error generating PID suggestions:', error);
+    return null;
+  }
+};
+
+const detectAnomalies = async (chartHistory) => {
+  try {
+    const completion = await openai.chat.completions.create({
+      messages: [
+        {
+          role: "system",
+          content: `You are an expert in process control anomaly detection. Analyze the recent process history to identify potential issues or anomalies.
+          
+          Analyze these aspects:
+          1. Oscillations
+          2. Steady-state offset
+          3. Response time
+          4. Overshoot
+          5. Stability
+          
+          Return analysis in JSON format:
+          {
+            "anomalies": [
+              {
+                "type": "anomaly type",
+                "severity": "high/medium/low",
+                "description": "detailed description",
+                "recommendation": "suggested action"
+              }
+            ],
+            "overall_health": "good/fair/poor",
+            "summary": "brief summary"
+          }`
+        },
+        {
+          role: "user",
+          content: `Analyze this process history:
+          PV: ${JSON.stringify(chartHistory.pv.slice(-20))}
+          SP: ${JSON.stringify(chartHistory.sp.slice(-20))}
+          LCV: ${JSON.stringify(chartHistory.lcv.slice(-20))}`
+        }
+      ],
+      model: "gpt-3.5-turbo",
+      temperature: 0.7,
+      response_format: { type: "json_object" }
+    });
+
+    return JSON.parse(completion.choices[0].message.content);
+  } catch (error) {
+    console.error('Error detecting anomalies:', error);
+    return null;
+  }
+};
+
+const predictTrends = async (chartHistory) => {
+  try {
+    const completion = await openai.chat.completions.create({
+      messages: [
+        {
+          role: "system",
+          content: `You are an expert in process control trend analysis. Analyze recent history to predict likely future behavior and suggest optimizations.
+          
+          Consider:
+          1. Current trends
+          2. Cyclic patterns
+          3. Disturbance patterns
+          4. Control effectiveness
+          
+          Return analysis in JSON format:
+          {
+            "short_term_prediction": "prediction for next 5-10 minutes",
+            "long_term_prediction": "prediction for next hour",
+            "potential_issues": ["issue1", "issue2"],
+            "optimization_suggestions": ["suggestion1", "suggestion2"],
+            "confidence_level": "high/medium/low"
+          }`
+        },
+        {
+          role: "user",
+          content: `Analyze this process history:
+          PV: ${JSON.stringify(chartHistory.pv.slice(-50))}
+          SP: ${JSON.stringify(chartHistory.sp.slice(-50))}
+          LCV: ${JSON.stringify(chartHistory.lcv.slice(-50))}`
+        }
+      ],
+      model: "gpt-3.5-turbo",
+      temperature: 0.7,
+      response_format: { type: "json_object" }
+    });
+
+    return JSON.parse(completion.choices[0].message.content);
+  } catch (error) {
+    console.error('Error predicting trends:', error);
+    return null;
+  }
+};
+
+// Update the AIAnalysisCard component with proper checks
+const AIAnalysisCard = ({ processParams, pidParams, chartHistory, currentLevel, setPoint }) => {
+  const [analysis, setAnalysis] = useState({
+    // Default values for each tab
+    tuning: {
+      analysis: '',
+      recommendations: {},
+      explanation: ''
+    },
+    anomalies: {
+      anomalies: [],
+      overall_health: 'unknown',
+      summary: ''
+    },
+    trends: {
+      short_term_prediction: '',
+      long_term_prediction: '',
+      potential_issues: [],
+      optimization_suggestions: [],
+      confidence_level: 'unknown'
+    }
+  });
+  const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState('tuning');
+
+  const runAnalysis = async (type) => {
+    setLoading(true);
+    let result;
+    
+    try {
+      switch(type) {
+        case 'tuning':
+          result = await generatePIDSuggestions(processParams, pidParams, currentLevel, setPoint);
+          break;
+        case 'anomalies':
+          result = await detectAnomalies(chartHistory);
+          break;
+        case 'trends':
+          result = await predictTrends(chartHistory);
+          break;
+        default:
+          result = null;
+      }
+
+      if (result) {
+        setAnalysis(prev => ({
+          ...prev,
+          [type]: result
+        }));
+      }
+    } catch (error) {
+      console.error(`Error running ${type} analysis:`, error);
+      // Keep existing analysis on error
+    }
+    
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    runAnalysis(activeTab);
+  }, [activeTab]);
+
+  const currentAnalysis = analysis[activeTab];
+
+  return (
+    <Card title="AI Process Analysis">
+      <div className="space-y-4">
+        {/* Analysis Type Tabs */}
+        <div className="flex space-x-2 border-b border-gray-700">
+          {['tuning', 'anomalies', 'trends'].map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-4 py-2 textg-sm font-medium rounded-t-lg transition-colors duration-200
+                ${activeTab === tab 
+                  ? 'bg-blue-500 text-white' 
+                  : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}`}
+            >
+              {tab.charAt(0).toUpperCase() + tab.slice(1)}
+            </button>
+          ))}
+        </div>
+
+        {/* Analysis Content */}
+        <div className="min-h-[200px] p-4 bg-gray-800/50 rounded-lg">
+          {loading ? (
+            <div className="flex items-center justify-center h-full">
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1, repeat: Infinity }}
+                className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full"
+              />
+            </div>
+          ) : currentAnalysis ? (
+            <div className="space-y-4">
+              {activeTab === 'tuning' && (
+                <>
+                  <div className="text-gray-300">{currentAnalysis.analysis || 'No analysis available'}</div>
+                  <div className="grid grid-cols-3 gap-4">
+                    {Object.entries(currentAnalysis.recommendations || {}).map(([param, value]) => (
+                      <div key={param} className="bg-gray-700/50 p-3 rounded-lg">
+                        <div className="text-sm text-gray-400">{param}</div>
+                        <div className="text-lg font-mono text-blue-400">{value}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="text-sm text-gray-400">{currentAnalysis.explanation || 'No explanation available'}</div>
+                </>
+              )}
+
+              {activeTab === 'anomalies' && (
+                <>
+                  <div className="flex items-center space-x-2">
+                    <div className={`w-2 h-2 rounded-full ${
+                      currentAnalysis.overall_health === 'good' ? 'bg-green-500' :
+                      currentAnalysis.overall_health === 'fair' ? 'bg-yellow-500' :
+                      currentAnalysis.overall_health === 'poor' ? 'bg-red-500' :
+                      'bg-gray-500'
+                    }`} />
+                    <div className="text-lg font-medium text-gray-200">
+                      System Health: {currentAnalysis.overall_health || 'Unknown'}
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    {(currentAnalysis.anomalies || []).map((anomaly, index) => (
+                      <div key={index} className="bg-gray-700/50 p-3 rounded-lg">
+                        <div className="flex items-center justify-between">
+                          <div className="text-gray-200">{anomaly.type}</div>
+                          <div className={`text-sm ${
+                            anomaly.severity === 'high' ? 'text-red-400' :
+                            anomaly.severity === 'medium' ? 'text-yellow-400' :
+                            'text-green-400'
+                          }`}>
+                            {anomaly.severity}
+                          </div>
+                        </div>
+                        <div className="text-sm text-gray-400 mt-1">{anomaly.description}</div>
+                        <div className="text-sm text-blue-400 mt-2">{anomaly.recommendation}</div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {activeTab === 'trends' && (
+                <>
+                  <div className="space-y-4">
+                    <div className="bg-gray-700/50 p-4 rounded-lg">
+                      <div className="text-sm text-gray-400">Short-term Prediction</div>
+                      <div className="text-gray-200 mt-1">{currentAnalysis.short_term_prediction || 'No prediction available'}</div>
+                    </div>
+                    <div className="bg-gray-700/50 p-4 rounded-lg">
+                      <div className="text-sm text-gray-400">Long-term Prediction</div>
+                      <div className="text-gray-200 mt-1">{currentAnalysis.long_term_prediction || 'No prediction available'}</div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-gray-700/50 p-4 rounded-lg">
+                        <div className="text-sm text-gray-400">Potential Issues</div>
+                        <ul className="list-disc list-inside text-gray-200 mt-1">
+                          {(currentAnalysis.potential_issues || []).map((issue, index) => (
+                            <li key={index}>{issue}</li>
+                          ))}
+                        </ul>
+                      </div>
+                      <div className="bg-gray-700/50 p-4 rounded-lg">
+                        <div className="text-sm text-gray-400">Optimization Suggestions</div>
+                        <ul className="list-disc list-inside text-gray-200 mt-1">
+                          {(currentAnalysis.optimization_suggestions || []).map((suggestion, index) => (
+                            <li key={index}>{suggestion}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                    <div className="text-sm text-gray-400">
+                      Confidence Level: 
+                      <span className={`ml-2 ${
+                        currentAnalysis.confidence_level === 'high' ? 'text-green-400' :
+                        currentAnalysis.confidence_level === 'medium' ? 'text-yellow-400' :
+                        currentAnalysis.confidence_level === 'low' ? 'text-red-400' :
+                        'text-gray-400'
+                      }`}>
+                        {currentAnalysis.confidence_level || 'Unknown'}
+                      </span>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          ) : (
+            <div className="text-gray-400 text-center">No analysis available</div>
+          )}
+        </div>
+      </div>
+    </Card>
+  );
+};
+
+// Add new AI helper functions
+const generatePerformanceScore = async (processParams, pidParams, chartHistory) => {
+  try {
+    const completion = await openai.chat.completions.create({
+      messages: [
+        {
+          role: "system",
+          content: `You are an expert in process control performance evaluation. Analyze the system parameters and history to generate a comprehensive performance score.
+          
+          Current Parameters:
+          Process: ${JSON.stringify(processParams)}
+          PID: ${JSON.stringify(pidParams)}
+          
+          Recent History:
+          PV: ${JSON.stringify(chartHistory.pv.slice(-20))}
+          SP: ${JSON.stringify(chartHistory.sp.slice(-20))}
+          LCV: ${JSON.stringify(chartHistory.lcv.slice(-20))}
+          
+          Generate a detailed performance analysis in JSON format:
+          {
+            "overall_score": number (0-100),
+            "categories": {
+              "stability": { "score": number, "comments": "string" },
+              "accuracy": { "score": number, "comments": "string" },
+              "efficiency": { "score": number, "comments": "string" },
+              "responsiveness": { "score": number, "comments": "string" }
+            },
+            "recommendations": ["string"],
+            "performance_metrics": {
+              "settling_time": number,
+              "overshoot": number,
+              "steady_state_error": number
+            }
+          }`
+        }
+      ],
+      model: "gpt-3.5-turbo",
+      temperature: 0.7,
+      response_format: { type: "json_object" }
+    });
+
+    return JSON.parse(completion.choices[0].message.content);
+  } catch (error) {
+    console.error('Error generating performance score:', error);
+    return null;
+  }
+};
+
+const predictMaintenance = async (processParams, chartHistory) => {
+  try {
+    const completion = await openai.chat.completions.create({
+      messages: [
+        {
+          role: "system",
+          content: `You are an expert in predictive maintenance for process control systems. Analyze the system behavior to predict potential maintenance needs.
+          
+          System Parameters:
+          ${JSON.stringify(processParams)}
+          
+          Recent History:
+          ${JSON.stringify({
+            pv: chartHistory.pv.slice(-50),
+            sp: chartHistory.sp.slice(-50),
+            lcv: chartHistory.lcv.slice(-50)
+          })}
+          
+          Provide maintenance analysis in JSON format:
+          {
+            "health_indicators": {
+              "valve_health": { "status": "string", "wear_level": number },
+              "sensor_health": { "status": "string", "drift_level": number },
+              "control_health": { "status": "string", "performance_level": number }
+            },
+            "maintenance_predictions": [
+              {
+                "component": "string",
+                "issue": "string",
+                "urgency": "high/medium/low",
+                "recommended_action": "string",
+                "estimated_timeline": "string"
+              }
+            ],
+            "optimization_opportunities": ["string"]
+          }`
+        }
+      ],
+      model: "gpt-3.5-turbo",
+      temperature: 0.7,
+      response_format: { type: "json_object" }
+    });
+
+    return JSON.parse(completion.choices[0].message.content);
+  } catch (error) {
+    console.error('Error predicting maintenance:', error);
+    return null;
+  }
+};
+
+// Add Performance Score Card Component
+const PerformanceScoreCard = ({ processParams, pidParams, chartHistory }) => {
+  const [performanceData, setPerformanceData] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const updateScore = async () => {
+    setLoading(true);
+    const score = await generatePerformanceScore(processParams, pidParams, chartHistory);
+    setPerformanceData(score);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    updateScore();
+    const interval = setInterval(updateScore, 60000); // Update every minute
+    return () => clearInterval(interval);
+  }, [processParams, pidParams]);
+
+  if (loading) {
+    return (
+      <Card title="Performance Score">
+        <div className="flex items-center justify-center h-40">
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1, repeat: Infinity }}
+            className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full"
+          />
+        </div>
+      </Card>
+    );
+  }
+
+  return (
+    <Card title="Performance Score">
+      {performanceData && (
+        <div className="space-y-4">
+          {/* Overall Score */}
+          <div className="flex items-center justify-center">
+            <div className="relative w-32 h-32">
+              <svg className="w-full h-full" viewBox="0 0 100 100">
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="45"
+                  fill="none"
+                  stroke="#1f2937"
+                  strokeWidth="10"
+                />
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="45"
+                  fill="none"
+                  stroke="#3b82f6"
+                  strokeWidth="10"
+                  strokeDasharray={`${performanceData.overall_score * 2.83} 283`}
+                  transform="rotate(-90 50 50)"
+                />
+                <text
+                  x="50"
+                  y="50"
+                  textAnchor="middle"
+                  dy="0.3em"
+                  className="text-3xl font-bold fill-current text-white"
+                >
+                  {performanceData.overall_score}
+                </text>
+              </svg>
+            </div>
+          </div>
+
+          {/* Category Scores */}
+          <div className="grid grid-cols-2 gap-4">
+            {Object.entries(performanceData.categories).map(([category, data]) => (
+              <div key={category} className="bg-gray-800/50 p-3 rounded-lg">
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-300 capitalize">{category}</span>
+                  <span className="text-lg font-mono text-blue-400">{data.score}</span>
+                </div>
+                <div className="text-sm text-gray-400 mt-1">{data.comments}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Performance Metrics */}
+          <div className="bg-gray-800/50 p-4 rounded-lg">
+            <h4 className="text-sm font-medium text-gray-300 mb-3">Performance Metrics</h4>
+            <div className="grid grid-cols-3 gap-4">
+              {Object.entries(performanceData.performance_metrics).map(([metric, value]) => (
+                <div key={metric} className="text-center">
+                  <div className="text-sm text-gray-400">{metric.split('_').join(' ')}</div>
+                  <div className="text-lg font-mono text-blue-400">{value.toFixed(2)}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Recommendations */}
+          <div className="bg-gray-800/50 p-4 rounded-lg">
+            <h4 className="text-sm font-medium text-gray-300 mb-3">Recommendations</h4>
+            <ul className="space-y-2">
+              {performanceData.recommendations.map((rec, index) => (
+                <li key={index} className="flex items-start space-x-2">
+                  <span className="text-blue-400">•</span>
+                  <span className="text-gray-300 text-sm">{rec}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
+    </Card>
+  );
+};
+
+// Update PredictiveMaintenanceCard component with proper null checks
+const PredictiveMaintenanceCard = ({ processParams, chartHistory }) => {
+  const [maintenanceData, setMaintenanceData] = useState({
+    health_indicators: {
+      valve_health: { status: 'unknown', wear_level: 0 },
+      sensor_health: { status: 'unknown', drift_level: 0 },
+      control_health: { status: 'unknown', performance_level: 0 }
+    },
+    maintenance_predictions: [],
+    optimization_opportunities: []
+  });
+  const [loading, setLoading] = useState(false);
+
+  const updateMaintenance = async () => {
+    setLoading(true);
+    try {
+      const data = await predictMaintenance(processParams, chartHistory);
+      if (data) {
+        setMaintenanceData({
+          health_indicators: {
+            valve_health: data.health_indicators?.valve_health || { status: 'unknown', wear_level: 0 },
+            sensor_health: data.health_indicators?.sensor_health || { status: 'unknown', drift_level: 0 },
+            control_health: data.health_indicators?.control_health || { status: 'unknown', performance_level: 0 }
+          },
+          maintenance_predictions: data.maintenance_predictions || [],
+          optimization_opportunities: data.optimization_opportunities || []
+        });
+      }
+    } catch (error) {
+      console.error('Error updating maintenance data:', error);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    updateMaintenance();
+    const interval = setInterval(updateMaintenance, 300000); // Update every 5 minutes
+    return () => clearInterval(interval);
+  }, [processParams]);
+
+  if (loading) {
+    return (
+      <Card title="Predictive Maintenance">
+        <div className="flex items-center justify-center h-40">
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1, repeat: Infinity }}
+            className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full"
+          />
+        </div>
+      </Card>
+    );
+  }
+
+  const getHealthValue = (health) => {
+    if (health.wear_level !== undefined) return health.wear_level;
+    if (health.drift_level !== undefined) return health.drift_level;
+    if (health.performance_level !== undefined) return health.performance_level;
+    return 0;
+  };
+
+  return (
+    <Card title="Predictive Maintenance">
+      <div className="space-y-4">
+        {/* Health Indicators */}
+        <div className="grid grid-cols-3 gap-4">
+          {Object.entries(maintenanceData.health_indicators || {}).map(([component, health]) => (
+            <div key={component} className="bg-gray-800/50 p-3 rounded-lg">
+              <div className="text-sm text-gray-400 capitalize">{component.split('_').join(' ')}</div>
+              <div className="flex items-center justify-between mt-2">
+                <div className={`text-sm ${
+                  health.status === 'good' ? 'text-green-400' :
+                  health.status === 'fair' ? 'text-yellow-400' :
+                  health.status === 'poor' ? 'text-red-400' :
+                  'text-gray-400'
+                }`}>
+                  {health.status || 'unknown'}
+                </div>
+                <div className="text-gray-300">
+                  {getHealthValue(health).toFixed(1)}%
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Maintenance Predictions */}
+        <div className="space-y-3">
+          {(maintenanceData.maintenance_predictions || []).map((prediction, index) => (
+            <div key={index} className="bg-gray-800/50 p-4 rounded-lg">
+              <div className="flex items-center justify-between">
+                <div className="text-gray-300 font-medium">{prediction.component || 'Unknown Component'}</div>
+                <div className={`text-sm px-2 py-1 rounded ${
+                  prediction.urgency === 'high' ? 'bg-red-500/20 text-red-400' :
+                  prediction.urgency === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
+                  'bg-green-500/20 text-green-400'
+                }`}>
+                  {prediction.urgency || 'unknown'}
+                </div>
+              </div>
+              <div className="text-sm text-gray-400 mt-2">{prediction.issue || 'No issue description'}</div>
+              <div className="text-sm text-blue-400 mt-1">{prediction.recommended_action || 'No recommendation'}</div>
+              <div className="text-xs text-gray-500 mt-2">Timeline: {prediction.estimated_timeline || 'Unknown'}</div>
+            </div>
+          ))}
+          {maintenanceData.maintenance_predictions.length === 0 && (
+            <div className="text-center text-gray-400 py-4">
+              No maintenance predictions available
+            </div>
+          )}
+        </div>
+
+        {/* Optimization Opportunities */}
+        <div className="bg-gray-800/50 p-4 rounded-lg">
+          <h4 className="text-sm font-medium text-gray-300 mb-3">Optimization Opportunities</h4>
+          {maintenanceData.optimization_opportunities.length > 0 ? (
+            <ul className="space-y-2">
+              {(maintenanceData.optimization_opportunities || []).map((opportunity, index) => (
+                <li key={index} className="flex items-start space-x-2">
+                  <span className="text-blue-400">•</span>
+                  <span className="text-gray-300 text-sm">{opportunity}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className="text-center text-gray-400 py-2">
+              No optimization opportunities available
+            </div>
+          )}
+        </div>
+      </div>
+    </Card>
+  );
+};
+
 const Dashboard = () => {
   // State for process parameters
   const [processParams, setProcessParams] = useState({
@@ -921,9 +1606,9 @@ const getLcvauto = async () => {
 
 const allparamerter = async () => {
   try {
-    console.log(`${baseUrl}/WebService1/lcv?lcv=${lcv}&static_gain=${processParams.staticGain}&kc=${pidParams.proportionalGain}&ti=${pidParams.integralTime}&lag=${processParams.lag}&td=${pidParams.derivativeTime}&auto=${auto}&initial_pv=${processParams.initialPV}&plant_noise=${processParams.plantNoise}&deadtime=${processParams.deadtime}&load=${processParams.load}&sensor_noise=${processParams.sensorNoise}&deadband=${processParams.deadband}&set_point=${setPoint}`)
+    console.log(`${baseUrl}/WebService1/lcv?lcv=${lcv}&static_gain=${processParams.staticGain}&kc=${pidParams.proportionalGain}&ti=${pidParams.integralTime}&lag=${processParams.lag}&td=${pidParams.derivativeTime}&auto=${auto}&initial_pv=${processParams.initialPV}&plant_noise=${processParams.plantNoise}&deadtime=${processParams.deadtime}&load=${processParams.load}&sensor_noise=${processParams.sensorNoise}&deadband=${processParams.deadband}&set_point=${setpointValue}`)
 
-    const response = await axios.get(`${baseUrl}/WebService1/lcv?lcv=${lcv}&static_gain=${processParams.staticGain}&kc=${pidParams.proportionalGain}&ti=${pidParams.integralTime}&lag=${processParams.lag}&td=${pidParams.derivativeTime}&auto=${auto}&initial_pv=${processParams.initialPV}&plant_noise=${processParams.plantNoise}&deadtime=${processParams.deadtime}&load=${processParams.load}&sensor_noise=${processParams.sensorNoise}&deadband=${processParams.deadband}&set_point=${setPoint}`)
+    const response = await axios.get(`${baseUrl}/WebService1/lcv?lcv=${lcv}&static_gain=${processParams.staticGain}&kc=${pidParams.proportionalGain}&ti=${pidParams.integralTime}&lag=${processParams.lag}&td=${pidParams.derivativeTime}&auto=${auto}&initial_pv=${processParams.initialPV}&plant_noise=${processParams.plantNoise}&deadtime=${processParams.deadtime}&load=${processParams.load}&sensor_noise=${processParams.sensorNoise}&deadband=${processParams.deadband}&set_point=${setpointValue}`)
     // Update all states with the response data if needed
     if (response.data) {
       // Update process parameters
@@ -1593,6 +2278,34 @@ const allparamerter = async () => {
             </div>
           </div>
 
+          {/* Add Performance Score Section */}
+          <div className="col-span-6">
+            <PerformanceScoreCard 
+              processParams={processParams}
+              pidParams={pidParams}
+              chartHistory={chartHistory}
+            />
+          </div>
+
+          {/* Add Predictive Maintenance Section */}
+          <div className="col-span-6">
+            <PredictiveMaintenanceCard 
+              processParams={processParams}
+              chartHistory={chartHistory}
+            />
+          </div>
+
+          {/* Existing AI Analysis Section */}
+          <div className="col-span-12">
+            <AIAnalysisCard 
+              processParams={processParams}
+              pidParams={pidParams}
+              chartHistory={chartHistory}
+              currentLevel={currentLevel}
+              setPoint={setPoint}
+            />
+          </div>
+
           {/* Parameters Submit Section */}
           <div className="col-span-12">
             <Card title="Submit All Parameters">
@@ -1652,7 +2365,7 @@ const allparamerter = async () => {
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-400">Set Point:</span>
-                        <span className="text-white">{setPoint}%</span>
+                        <span className="text-white">{setpointValue}%</span>
                       </div>
                     </div>
                   </div>
