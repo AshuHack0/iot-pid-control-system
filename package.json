@@ -11,6 +11,7 @@
     "chart.js": "^4.4.8",
     "date-fns": "^4.1.0",
     "framer-motion": "^12.4.7",
+    "openai": "^4.97.0",
     "react": "^18.3.1",
     "react-chartjs-2": "^5.3.0",
     "react-dom": "^18.3.1",

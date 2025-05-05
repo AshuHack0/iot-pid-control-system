@@ -13,8 +13,8 @@ import {
   Legend
 } from 'chart.js';
 import { motion, useMotionValue, useTransform, AnimatePresence } from 'framer-motion';
-import { OPENAI_CONFIG } from '../config/openai';
 import axios from 'axios';
+import openai from '../services/openai';
 
 ChartJS.register(
   CategoryScale,
@@ -572,14 +572,29 @@ const ParameterInput = ({ label, value, onChange, unit = "" }) => (
 );
 
 // Add this new component before the Dashboard component
-const AIChatBot = () => {
+const AIChatBot = ({ 
+  processParams,
+  pidParams,
+  isAuto,
+  systemRunning,
+  currentLevel,
+  setPoint,
+  controlOutput 
+}) => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([
-    { type: 'bot', text: 'Hello! I\'m your Process Control Assistant. How can I help you today?' }
+    { type: 'bot', text: 'Hello! I\'m your Process Control Assistant. How can I help you optimize your control system?' }
   ]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef(null);
+  const [suggestions] = useState([
+    "How do I tune PID parameters?",
+    "What's the best setpoint for my process?",
+    "Explain the current system status",
+    "Help me optimize control performance",
+    "Analyze current process trends"
+  ]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -589,44 +604,39 @@ const AIChatBot = () => {
     scrollToBottom();
   }, [messages]);
 
-  const callOpenAI = async (userMessage) => {
+  const generateResponse = async (userMessage, systemContext) => {
     try {
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${OPENAI_CONFIG.apiKey}`
-        },
-        body: JSON.stringify({
-          model: OPENAI_CONFIG.model,
-          messages: [
-            {
-              role: "system",
-              content: "You are a helpful process control assistant. You help users understand PID control, process automation, and industrial control systems. Keep responses concise and practical."
-            },
-            ...messages.map(msg => ({
-              role: msg.type === 'user' ? 'user' : 'assistant',
-              content: msg.text
-            })),
-            {
-              role: "user",
-              content: userMessage
-            }
-          ],
-          temperature: OPENAI_CONFIG.temperature,
-          max_tokens: OPENAI_CONFIG.max_tokens
-        })
+      const completion = await openai.chat.completions.create({
+        messages: [
+          {
+            role: "system",
+            content: `You are an expert process control AI assistant. You help users optimize their control systems and understand process dynamics.
+            
+            Current System Context:
+            ${systemContext}
+            
+            Guidelines:
+            - Provide concise, technical yet understandable responses
+            - Focus on practical, actionable advice
+            - Use industry-standard terminology
+            - Reference specific parameters and metrics when relevant
+            - Suggest improvements based on best practices
+            - Keep responses under 100 words unless more detail is explicitly needed`
+          },
+          {
+            role: "user",
+            content: userMessage
+          }
+        ],
+        model: "gpt-3.5-turbo",
+        temperature: 0.7,
+        max_tokens: 500
       });
 
-      if (!response.ok) {
-        throw new Error('API request failed');
-      }
-
-      const data = await response.json();
-      return data.choices[0].message.content;
+      return completion.choices[0].message.content;
     } catch (error) {
       console.error('OpenAI API Error:', error);
-      return "I apologize, but I'm having trouble connecting to my knowledge base right now. Please try again later.";
+      return "I apologize, but I'm having trouble processing your request right now. Please try again or check your system parameters directly.";
     }
   };
 
@@ -644,14 +654,39 @@ const AIChatBot = () => {
     // Add typing indicator
     setMessages(prev => [...prev, { type: 'bot', text: '...', isTyping: true }]);
 
+    // Generate system context
+    const systemContext = `
+      Current Process Parameters:
+      - Static Gain: ${processParams.staticGain}
+      - Lag: ${processParams.lag}s
+      - Deadtime: ${processParams.deadtime}s
+      - Initial PV: ${processParams.initialPV}
+      
+      PID Parameters:
+      - Kc: ${pidParams.proportionalGain}
+      - Ti: ${pidParams.integralTime}
+      - Td: ${pidParams.derivativeTime}
+      
+      System Status:
+      - Mode: ${isAuto ? 'Automatic' : 'Manual'}
+      - Running: ${systemRunning ? 'Yes' : 'No'}
+      - Current PV: ${currentLevel}
+      - Setpoint: ${setPoint}
+      - Control Output: ${controlOutput}
+    `;
+
     // Get AI response
-    const aiResponse = await callOpenAI(userMessage);
+    const aiResponse = await generateResponse(userMessage, systemContext);
 
     // Remove typing indicator and add AI response
     setMessages(prev => prev.filter(msg => !msg.isTyping));
     setMessages(prev => [...prev, { type: 'bot', text: aiResponse }]);
 
     setIsLoading(false);
+  };
+
+  const handleSuggestionClick = (suggestion) => {
+    setInputValue(suggestion);
   };
 
   return (
@@ -692,6 +727,32 @@ const AIChatBot = () => {
             className="absolute bottom-16 right-0 w-96 bg-gray-900 rounded-xl shadow-2xl
                        border border-gray-700 overflow-hidden"
           >
+            {/* Chat Header */}
+            <div className="p-4 border-b border-gray-700 bg-gray-800">
+              <div className="flex items-center space-x-2">
+                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                <span className="text-white font-medium">Process Control Assistant</span>
+              </div>
+            </div>
+
+            {/* Quick Suggestions */}
+            <div className="p-2 bg-gray-800/50 border-b border-gray-700">
+              <div className="flex flex-wrap gap-2">
+                {suggestions.map((suggestion, index) => (
+                  <motion.button
+                    key={index}
+                    onClick={() => handleSuggestionClick(suggestion)}
+                    className="text-xs bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 
+                             px-2 py-1 rounded-full transition-colors duration-200"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    {suggestion}
+                  </motion.button>
+                ))}
+              </div>
+            </div>
+
             {/* Chat Messages */}
             <div className="h-96 overflow-y-auto p-4 space-y-4">
               {messages.map((message, index) => (
@@ -729,15 +790,15 @@ const AIChatBot = () => {
             </div>
 
             {/* Chat Input */}
-            <form onSubmit={handleSubmit} className="p-4 border-t border-gray-700">
+            <form onSubmit={handleSubmit} className="p-4 border-t border-gray-700 bg-gray-800">
               <div className="flex space-x-2">
                 <input
                   type="text"
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
-                  placeholder="Type your message..."
+                  placeholder="Ask about process control..."
                   disabled={isLoading}
-                  className="flex-1 bg-gray-800 text-white rounded-lg px-4 py-2
+                  className="flex-1 bg-gray-900 text-white rounded-lg px-4 py-2
                            border border-gray-700 focus:outline-none focus:border-blue-500
                            placeholder-gray-500 disabled:opacity-50"
                 />
@@ -1642,7 +1703,15 @@ const allparamerter = async () => {
           </div>
         </div>
       </motion.div>
-      <AIChatBot />
+      <AIChatBot 
+        processParams={processParams}
+        pidParams={pidParams}
+        isAuto={isAuto}
+        systemRunning={systemRunning}
+        currentLevel={currentLevel}
+        setPoint={setPoint}
+        controlOutput={controlOutput}
+      />
     </div>
   );
 };
