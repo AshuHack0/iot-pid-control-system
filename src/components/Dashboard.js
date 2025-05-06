@@ -754,7 +754,7 @@ const AIChatBot = ({
             </div>
 
             {/* Chat Messages */}
-            <div className="h-96 overflow-y-auto p-4 space-y-4">
+            <div className="h-50 overflow-y-auto p-4 space-y-4">
               {messages.map((message, index) => (
                 <motion.div
                   key={index}
@@ -1606,7 +1606,7 @@ const getLcvauto = async () => {
 
 const allparamerter = async () => {
   try {
-    console.log(`${baseUrl}/WebService1/lcv?lcv=${lcv}&static_gain=${processParams.staticGain}&kc=${pidParams.proportionalGain}&ti=${pidParams.integralTime}&lag=${processParams.lag}&td=${pidParams.derivativeTime}&auto=${auto}&initial_pv=${processParams.initialPV}&plant_noise=${processParams.plantNoise}&deadtime=${processParams.deadtime}&load=${processParams.load}&sensor_noise=${processParams.sensorNoise}&deadband=${processParams.deadband}&set_point=${setpointValue}`)
+    // console.log(`${baseUrl}/WebService1/lcv?lcv=${lcv}&static_gain=${processParams.staticGain}&kc=${pidParams.proportionalGain}&ti=${pidParams.integralTime}&lag=${processParams.lag}&td=${pidParams.derivativeTime}&auto=${auto}&initial_pv=${processParams.initialPV}&plant_noise=${processParams.plantNoise}&deadtime=${processParams.deadtime}&load=${processParams.load}&sensor_noise=${processParams.sensorNoise}&deadband=${processParams.deadband}&set_point=${setpointValue}`)
 
     const response = await axios.get(`${baseUrl}/WebService1/lcv?lcv=${lcv}&static_gain=${processParams.staticGain}&kc=${pidParams.proportionalGain}&ti=${pidParams.integralTime}&lag=${processParams.lag}&td=${pidParams.derivativeTime}&auto=${auto}&initial_pv=${processParams.initialPV}&plant_noise=${processParams.plantNoise}&deadtime=${processParams.deadtime}&load=${processParams.load}&sensor_noise=${processParams.sensorNoise}&deadband=${processParams.deadband}&set_point=${setpointValue}`)
     // Update all states with the response data if needed
